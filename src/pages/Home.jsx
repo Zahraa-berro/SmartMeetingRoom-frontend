@@ -4,6 +4,14 @@ import { Container, Row, Col, Card, Form, Button, Alert, InputGroup } from 'reac
 import { Eye, EyeSlash, Lock, Envelope, PersonCircle } from 'react-bootstrap-icons';
 import '../App.css';
 
+
+
+
+import  { useEffect } from 'react';
+import { api } from '../services/api';
+
+
+
 // Import the external ForgotPassword component
 import ForgotPassword from '../components/Auth/ForgotPassword';
 
@@ -34,33 +42,47 @@ const Home = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+ const handleLogin = async (e) => {
+  e.preventDefault();
+  
+  if (!validateForm()) {
+    return;
+  }
+  
+  setIsLoading(true);
+  
+  try {
     
-    if (!validateForm()) {
-      return;
-    }
+    await api.get('/sanctum/csrf-cookie');
     
-    setIsLoading(true);
+    const response = await api.post('/api/login', {
+      email,
+      password
+    });
     
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Authentication logic here
-      // For demo purposes, we'll just navigate to dashboard
-      navigate('/dashboard');
-    } catch (error) {
-      setShowAlert(true);
-      setTimeout(() => setShowAlert(false), 3000);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    localStorage.setItem('auth_token', response.token);
+    navigate('/dashboard');
+    
+  } catch (error) {
+    setShowAlert(true);
+    setErrors({ message: error.response?.data?.message || 'Login failed' });
+    //setTimeout(() => setShowAlert(false), 3000);
+    navigate('/');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+
+
+
+
+
+
+
 
   return (
     <div className="login-background">
@@ -85,7 +107,7 @@ const Home = () => {
                   <Form.Group className="mb-3">
                     <Form.Label className="fw-semibold">
                       <Envelope className="me-2" />
-                      Email/Username
+                      Email
                     </Form.Label>
                     <Form.Control 
                       type="text" 

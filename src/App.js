@@ -6,10 +6,9 @@ import BookingPage from './pages/BookingPage';
 import MeetingPage from './pages/MeetingPage';
 import MinutesPage from './pages/MinutesPage';
 import AdminPage from './pages/AdminPage';
-import password from './components/Auth/ForgotPassword';
 import './App.css';
 import ForgotPassword from './components/Auth/ForgotPassword';
-//         <Route path="/meeting/:id" element={<MeetingPage />} />
+
 function App() {
   return (
     <Router>
