@@ -140,7 +140,7 @@ body {
 }
 
 /* ===== BUTTON COMPONENTS ===== */
-.btn {
+/* .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -188,8 +188,8 @@ body {
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-}
-
+} */
+/* 
 .search-button {
   background: var(--room-header);
   color: var(--text-light);
@@ -223,18 +223,46 @@ body {
 
 .book-button.selected {
   background: var(--room-selected);
-}
+} */
 
 /* ===== HEADER STYLES ===== */
+/* Header Styles */
 .dashboard-header {
-  margin-bottom: var(--space-lg);
+  background: var(--bg-primary);
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--bg-tertiary);
+  margin-bottom: var(--space-sm);
 }
 
-.greeting {
-  font-size: var(--text-3xl);
+.dashboard-header .navbar {
+  padding: 0;
+}
+
+.dashboard-header .greeting {
+  font-size: var(--text-2xl);
   font-weight: 700;
-  margin-bottom: var(--space-xs);
+  margin-bottom: 0;
   color: var(--text-primary);
+}
+
+.profile-btn {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius-sm);
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.profile-btn:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.date-display {
+  font-size: var(--text-lg);
+  color: var(--text-secondary);
+  margin-bottom: 0;
 }
 
 .date-display {
@@ -611,6 +639,22 @@ body {
 
 
 /* RoomManagement.css */
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error {
+  text-align: center;
+  padding: 40px;
+  color: #d32f2f;
+}
+
+.error h2 {
+  margin-bottom: 15px;
+}
+
 .room-management {
   padding: 20px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -824,12 +868,13 @@ table tr:hover {
 }
 
 .equipment-list li {
+  background: #f0f9ff;
+  color: #0369a1;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  margin: 2px 0;
   display: inline-block;
-  background-color: #e9ecef;
-  padding: 5px 10px;
-  border-radius: 15px;
-  font-size: 12px;
-  color: #495057;
 }
 
 /* Modal Styles */

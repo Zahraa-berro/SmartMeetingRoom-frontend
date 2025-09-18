@@ -3,16 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Card, Form, Button, Alert, InputGroup } from 'react-bootstrap';
 import { Eye, EyeSlash, Lock, Envelope, PersonCircle } from 'react-bootstrap-icons';
 import '../App.css';
-
-
-
-
-import  { useEffect } from 'react';
+import { useEffect } from 'react';
 import { api } from '../services/api';
-
-
-
-// Import the external ForgotPassword component
+import { useAuth } from '../contexts/AuthContexts'; // Import the AuthContext hook
 import ForgotPassword from '../components/Auth/ForgotPassword';
 
 // Home Component (Login Page)
@@ -23,7 +16,10 @@ const Home = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
   const navigate = useNavigate();
+  
+  const { login } = useAuth(); // Get the login function from AuthContext
 
   const validateForm = () => {
     const newErrors = {};
@@ -42,47 +38,65 @@ const Home = () => {
     return Object.keys(newErrors).length === 0;
   };
 
- const handleLogin = async (e) => {
-  e.preventDefault();
-  
-  if (!validateForm()) {
-    return;
-  }
-  
-  setIsLoading(true);
-  
-  try {
+  const handleLogin = async (e) => {
+    e.preventDefault();
     
-    await api.get('/sanctum/csrf-cookie');
+    if (!validateForm()) {
+      return;
+    }
     
-    const response = await api.post('/api/login', {
-      email,
-      password
-    });
+    setIsLoading(true);
+    setShowAlert(false);
+    setAlertMessage('');
     
-    localStorage.setItem('auth_token', response.token);
-    navigate('/dashboard');
-    
-  } catch (error) {
-    setShowAlert(true);
-    setErrors({ message: error.response?.data?.message || 'Login failed' });
-    //setTimeout(() => setShowAlert(false), 3000);
-    navigate('/');
-  } finally {
-    setIsLoading(false);
-  }
-};
+    try {
+      // Get CSRF token
+      await api.get('/sanctum/csrf-cookie');
+      
+      // Send login request
+      const response = await api.post('/api/login', {
+        email,
+        password
+      });
+      
+
+
+
+    console.log('=== API RESPONSE DEBUG ===');
+    console.log('Full response:', response);
+    console.log('Response data:', response.data);
+    console.log('Response.data.user exists:', !!response.data.user);
+    console.log('Response.data.token exists:', !!response.data.token);
+    console.log('Response.data.data exists:', !!response.data.data);
+    console.log('==========================');
+      console.log('Login response:', response.data); // Debug log
+      
+      // Use AuthContext login function - this stores user data with role
+      login(response.data);
+      
+      // Redirect to dashboard
+      navigate('/dashboard');
+      
+    } catch (error) {
+      console.error('Login error:', error);
+      
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.errors?.email?.[0] || 
+                          error.response?.data?.errors?.password?.[0] || 
+                          'Login failed. Please try again.';
+      
+      setShowAlert(true);
+      setAlertMessage(errorMessage);
+      setErrors({ message: errorMessage });
+      
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
-
-
-
-
-
-
-
 
   return (
     <div className="login-background">
@@ -94,12 +108,17 @@ const Home = () => {
                 <div className="text-center mb-4">
                   <PersonCircle size={50} className="text-primary mb-3" />
                   <h2 className="fw-bold">Smart Meeting Room</h2>
-                  <p className="text-muted">Sign in to access your meeting dashboard</p>
+                  <p className="text-muted">Sign in with your email</p>
                 </div>
                 
                 {showAlert && (
-                  <Alert variant="danger" className="mb-3">
-                    Invalid credentials. Please try again.
+                  <Alert 
+                    variant="danger" 
+                    className="mb-3" 
+                    onClose={() => setShowAlert(false)} 
+                    dismissible
+                  >
+                    {alertMessage}
                   </Alert>
                 )}
                 
@@ -110,12 +129,13 @@ const Home = () => {
                       Email
                     </Form.Label>
                     <Form.Control 
-                      type="text" 
-                      placeholder="Enter email or username" 
+                      type="email" 
+                      placeholder="Enter your email" 
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       isInvalid={!!errors.email}
                       className="py-2"
+                      disabled={isLoading}
                     />
                     <Form.Control.Feedback type="invalid">
                       {errors.email}
@@ -135,11 +155,14 @@ const Home = () => {
                         onChange={(e) => setPassword(e.target.value)}
                         isInvalid={!!errors.password}
                         className="py-2"
+                        disabled={isLoading}
                       />
                       <Button 
                         variant="outline-secondary" 
                         onClick={togglePasswordVisibility}
                         className="password-toggle"
+                        disabled={isLoading}
+                        type="button"
                       >
                         {showPassword ? <EyeSlash /> : <Eye />}
                       </Button>

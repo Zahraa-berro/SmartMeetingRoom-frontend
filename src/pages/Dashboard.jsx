@@ -1,19 +1,25 @@
-import React, { useState } from 'react';
-import { Container, Row, Col, Card, Button, ButtonGroup } from 'react-bootstrap';
-import { FaCalendarAlt, FaVideo, FaFileAlt, FaArrowRight, FaClock } from 'react-icons/fa';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Container, Row, Col, Card, Button, ButtonGroup, Navbar, Alert, Badge } from 'react-bootstrap';
+import { FaCalendarAlt, FaVideo, FaFileAlt, FaArrowRight, FaClock, FaUserCircle, FaCog, FaUsers, FaChartLine } from 'react-icons/fa';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import RoomAvailabilityChart from '../components/Dashboard/RoomAvailabilityChart';
 import '../App.css';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContexts'; // Import AuthContext
 
 const Dashboard = () => {
   const [date, setDate] = useState(new Date());
   const [activeView, setActiveView] = useState('day');
+  const [showDebug, setShowDebug] = useState(false); // For toggling debug info
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     day: 'numeric',
     month: 'long'
   });
+
+  const { user, hasRole, isAuthenticated } = useAuth(); // Get auth info
+  const navigate = useNavigate();
 
   // Sample data
   const upcomingMeetings = [
@@ -31,32 +37,140 @@ const Dashboard = () => {
     { name: 'Zoom Room', usage: 20, available: true }
   ];
 
+  // Debug function to check role access
+  const checkRoleAccess = () => {
+    console.log('=== ROLE DEBUG INFORMATION ===');
+    console.log('User Object:', user);
+    console.log('Role Type:', user?.role?.type);
+    console.log('Is Admin:', hasRole('admin'));
+    console.log('Is guest:', hasRole('guest'));
+    console.log('Is Employee:', hasRole('employee'));
+    console.log('LocalStorage User:', localStorage.getItem('user_data'));
+    console.log('==============================');
+  };
+
+  // Call debug on component mount
+  useEffect(() => {
+    checkRoleAccess();
+  }, []);
+
+  const bookingNavigate = useCallback(() => {
+    navigate('/BookingPage');
+  }, [navigate]);
+
+  const minutesNavigate = useCallback(() => {
+    navigate('/minutes');
+  }, [navigate]);
+
+  const profileNavigate = useCallback(() => {
+    navigate('/manageprofile');
+  }, [navigate]);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
+
+  if (!isAuthenticated) {
+    return <div>Redirecting to login...</div>;
+  }
+
   return (
     <Container fluid className="dashboard-container">
       {/* Header Section */}
-      <Row className="dashboard-header mb-4">
+      <Row className="mb-4">
         <Col>
-          <h1 className="greeting">Good Evening! John,</h1>
+          <Navbar className="dashboard-header" expand="lg">
+            <Navbar.Brand>
+              <h1 className="greeting">Smart Meeting Room</h1>
+              <Badge bg="info" className="ms-2">
+                Role: {user?.role?.type || 'Unknown'}
+              </Badge>
+            </Navbar.Brand>
+            <Navbar.Toggle />
+            <Navbar.Collapse className="justify-content-end">
+              <div className="d-flex gap-2 align-items-center">
+                <Button 
+                  variant="outline-secondary" 
+                  size="sm"
+                  onClick={() => setShowDebug(!showDebug)}
+                  title="Toggle debug information"
+                >
+                  <FaCog /> role
+                </Button>
+                <Button 
+                  variant="outline-primary" 
+                  className="profile-btn"
+                  onClick={profileNavigate}
+                >
+                  <FaUserCircle className="me-2" size={24} />
+                  {user?.firstName} {user?.lastName}
+                </Button>
+              </div>
+            </Navbar.Collapse>
+          </Navbar>
           <p className="date-display">{currentDate}</p>
         </Col>
       </Row>
 
-      {/* Quick Actions */}
+      {/* Debug Information */}
+      {showDebug && (
+        <Row className="mb-3">
+          <Col>
+            <Alert variant="info" className="p-3">
+              <h6>🛠️ Role Information</h6>
+              <div className="small">
+                <strong>User Role:</strong> {user?.role?.type || 'Not set'}<br/>
+                <strong>Has Admin Role:</strong> {hasRole('admin') ? '✅ YES' : '❌ NO'}<br/>
+                <strong>Has guest Role:</strong> {hasRole('guest') ? '✅ YES' : '❌ NO'}<br/>
+                <strong>Has Employee Role:</strong> {hasRole('employee') ? '✅ YES' : '❌ NO'}<br/>
+                <strong>User ID:</strong> {user?.id}<br/>
+                <strong>Email:</strong> {user?.email}
+              </div>
+              <Button 
+                variant="outline-info" 
+                size="sm" 
+                className="mt-2"
+                onClick={checkRoleAccess}
+              >
+                Refresh role Info
+              </Button>
+            </Alert>
+          </Col>
+        </Row>
+      )}
+
+      {/* Quick Actions - Role Based */}
       <Row className="mb-4">
         <Col>
           <div className="quick-actions">
-            <Button variant="primary" className="action-btn">
+            <Button variant="primary" className="action-btn" onClick={bookingNavigate}>
               <FaCalendarAlt className="me-2" />
-              Schedule Meeting
+              Book Meeting
             </Button>
-            <Button variant="success" className="action-btn">
-              <FaVideo className="me-2" />
-              Join Now
-            </Button>
-            <Button variant="info" className="action-btn">
+            
+            <Button variant="info" className="action-btn" onClick={minutesNavigate}>
               <FaFileAlt className="me-2" />
               View Minutes
             </Button>
+
+            {/* Admin Only Actions */}
+            {hasRole('admin') && (
+              <Button variant="warning" className="action-btn">
+                <FaUsers className="me-2" />
+                Manage Users
+              </Button>
+            )}
+
+            {/* Manager and Admin Actions */}
+            {(hasRole('employee') || hasRole('admin')) && (
+              <Button variant="success" className="action-btn">
+                <FaChartLine className="me-2" />
+                Analytics
+              </Button>
+            )}
           </div>
         </Col>
       </Row>
@@ -137,8 +251,42 @@ const Dashboard = () => {
                   </div>
                 ))}
               </div>
+
+              {/* Admin/Manager Only Section */}
+              {(hasRole('admin') || hasRole('manager')) && (
+                <div className="mt-4 p-3 bg-light rounded">
+                  <h6>📊 Management Overview</h6>
+                  <div className="small">
+                    <div>Total Rooms: 12</div>
+                    <div>Occupancy Rate: 78%</div>
+                    <div>Upcoming Reservations: 24</div>
+                    {hasRole('admin') && <div>System Health: Optimal</div>}
+                  </div>
+                </div>
+              )}
             </Card.Body>
           </Card>
+        </Col>
+      </Row>
+
+      {/* Role-based Footer Section */}
+      <Row className="mt-4">
+        <Col>
+          {hasRole('admin') && (
+            <Alert variant="warning" className="text-center">
+              <strong>Admin Mode Active</strong> - You have full system access
+            </Alert>
+          )}
+          {hasRole('guest') && (
+            <Alert variant="info" className="text-center">
+              <strong>guest Mode Active</strong> - You have only view access
+            </Alert>
+          )}
+          {hasRole('employee') && (
+            <Alert variant="success" className="text-center">
+              <strong>Employee Mode Active</strong> - You have standard employee access
+            </Alert>
+          )}
         </Col>
       </Row>
     </Container>

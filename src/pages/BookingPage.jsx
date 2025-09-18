@@ -1,42 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Container, Row, Col, Card } from 'react-bootstrap';
 import BookingForm from '../components/Booking/BookingForm';
 import RoomAvailabilityPreview from '../components/Booking/RoomAvailabilityPreview';
 import '../App.css';
 
 const BookingPage = () => {
+  const location = useLocation();
   const [formData, setFormData] = useState({
     title: '',
+    agenda: '',
     date: '',
     time: '',
     duration: '1 hour',
     attendees: [],
-    room: '',
+    room_name: '', // Changed from 'room' to match backend expectation
     recurring: false,
     videoConference: false
   });
 
-  // Sample room data
+  // Get data passed from RoomAvailabilityChecker
+  useEffect(() => {
+    if (location.state) {
+      const { selectedRoom, formData: passedFormData } = location.state;
+      
+      setFormData(prev => ({
+        ...prev,
+        date: passedFormData.date || '',
+        time: passedFormData.time || '',
+        duration: passedFormData.duration || '1 hour',
+        room_name: selectedRoom?.name || passedFormData.room_name || '' // Updated to room_name
+      }));
+    }
+  }, [location.state]);
+
+  // Sample room data (you might want to fetch this from your API)
   const rooms = [
     { id: 'room1', name: 'Conference Room A' },
     { id: 'room2', name: 'Conference Room B' },
     { id: 'room3', name: 'Small Meeting Room' },
   ];
 
-  // Sample booking data
-  const bookings = {
-    room1: [
-      { startTime: `${formData.date} 10:00`, endTime: `${formData.date} 12:00` }
-    ],
-    room2: [
-      { startTime: `${formData.date} 14:00`, endTime: `${formData.date} 15:00` }
-    ]
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Booking logic here
-    console.log('Booking submitted:', formData);
+  const handleSubmit = (responseData) => {
+    console.log('Booking submitted successfully:', responseData);
+    // You might want to redirect to a success page or show a confirmation message
   };
 
   return (
@@ -44,6 +51,11 @@ const BookingPage = () => {
       <Row className="mb-4">
         <Col>
           <h2>Book a Meeting Room</h2>
+          {formData.room_name && (
+            <div className="alert alert-info">
+              <strong>Selected Room:</strong> {formData.room_name}
+            </div>
+          )}
         </Col>
       </Row>
 
@@ -67,9 +79,12 @@ const BookingPage = () => {
                 rooms={rooms}
                 selectedDate={formData.date ? `${formData.date}T${formData.time}` : ''}
                 selectedDuration={formData.duration}
-                bookings={bookings}
-                selectedRoom={formData.room}
-                onRoomSelect={(roomId) => setFormData({...formData, room: roomId})}
+                bookings={[]} // You might want to fetch actual bookings
+                selectedRoom={formData.room_name}
+                onRoomSelect={(roomId) => {
+                  const selected = rooms.find(r => r.id === roomId);
+                  setFormData({...formData, room_name: selected?.name || ''});
+                }}
               />
             </Card.Body>
           </Card>

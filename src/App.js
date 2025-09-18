@@ -8,20 +8,27 @@ import MinutesPage from './pages/MinutesPage';
 import AdminPage from './pages/AdminPage';
 import './App.css';
 import ForgotPassword from './components/Auth/ForgotPassword';
-
+import { AuthProvider } from '../src/contexts/AuthContexts';
+import Profile from './pages/Profile';
 function App() {
   return (
-    <Router>
-      <Routes>
+    <AuthProvider>
+      <Router>
+        <div className="App">
+          <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Home />} />
         <Route path="/Dashboard" element={<Dashboard />} />
         <Route path="/Admin" element={<AdminPage />} />
         <Route path="/meeting/:id" element={<MeetingPage />} />
         <Route path="/BookingPage" element={<BookingPage />} />
         <Route path="/minutes" element={<MinutesPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/manageprofile" element={<Profile />} />
       </Routes>
-    </Router>
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }
 

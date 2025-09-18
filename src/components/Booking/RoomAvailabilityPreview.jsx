@@ -1,164 +1,242 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { useAuth } from '../../contexts/AuthContexts';
 
 const RoomAvailabilityChecker = () => {
   const [date, setDate] = useState('');
   const [startTime, setStartTime] = useState('');
   const [duration, setDuration] = useState('');
-  const [selectedRoom, setSelectedRoom] = useState(null);
-
-  const [rooms, setRooms] = useState([
-    { id: 1, name: "Conference Room A", capacity: 20, features: ["Projector", "Video Conferencing", "Whiteboard"], imageColor: "#6c87b0" },
-    { id: 2, name: "Conference Room B", capacity: 12, features: ["TV Display", "Phone System", "Whiteboard"], imageColor: "#8ba5cc" },
-    { id: 3, name: "Meeting Room C", capacity: 8, features: ["Monitor", "Speakerphone"], imageColor: "#a4b9db" },
-    { id: 4, name: "Boardroom", capacity: 16, features: ["4K Display", "Advanced Audio", "Video Conferencing"], imageColor: "#6c87b0" }
-  ]);
-
-  const [bookings, setBookings] = useState([
-    { roomId: 1, date: "2023-09-15", startTime: "09:00", endTime: "10:30" },
-    { roomId: 2, date: "2023-09-15", startTime: "14:00", endTime: "15:00" },
-    { roomId: 4, date: "2023-09-15", startTime: "11:00", endTime: "12:30" },
-    { roomId: 3, date: "2023-09-15", startTime: "16:00", endTime: "17:00" }
-  ]);
-
   const [availableRooms, setAvailableRooms] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+  
+  const { hasRole } = useAuth();
 
-  useEffect(() => {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    setDate(`${yyyy}-${mm}-${dd}`);
-
-    const nextHour = today.getHours() + 1;
-    setStartTime(`${nextHour.toString().padStart(2, '0')}:00`);
-  }, []);
-
-  const timeToMinutes = (timeStr) => {
-    const [h, m] = timeStr.split(':').map(Number);
-    return h * 60 + m;
+  const handleManageRoom = () => {
+    if (hasRole('admin')) {
+      navigate('/admin');
+    } else {
+      setError('Access denied. Admin privileges required.');
+    }
   };
 
-  const formatTime = (timeStr) => {
-    const [hours, minutes] = timeStr.split(':');
-    const h = parseInt(hours);
-    return h > 12 ? `${h - 12}:${minutes} PM` : `${h}:${minutes} AM`;
-  };
-
-  const checkAvailability = () => {
+  const handleCheckAvailability = async (e) => {
+    if (e) e.preventDefault();
+    
     if (!date || !startTime || !duration) {
-      alert('Please fill all fields');
-      return;
+        setError('Please fill all fields');
+        return;
     }
 
-    const [hours, minutes] = startTime.split(':').map(Number);
-    const totalMinutes = hours * 60 + minutes + parseInt(duration);
-    const endHours = Math.floor(totalMinutes / 60) % 24;
-    const endMinutes = totalMinutes % 60;
-    const endTime = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+    setLoading(true);
+    setError('');
+    setAvailableRooms([]);
+    
+    try {
+        await axios.get('http://localhost:8000/sanctum/csrf-cookie');
+        
+        const token = localStorage.getItem('auth_token');
+        
+        const response = await fetch('http://localhost:8000/api/rooms/check-availability', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': token ? `Bearer ${token}` : '',
+            },
+            body: JSON.stringify({
+                date: date,
+                start_time: startTime,
+                duration: parseInt(duration)
+            })
+        });
 
-    const available = rooms.filter(room => {
-      const conflict = bookings.some(b => {
-        if (b.roomId !== room.id || b.date !== date) return false;
-        const bStart = timeToMinutes(b.startTime);
-        const bEnd = timeToMinutes(b.endTime);
-        const reqStart = timeToMinutes(startTime);
-        const reqEnd = timeToMinutes(endTime);
-        return reqStart < bEnd && reqEnd > bStart;
-      });
-      return !conflict;
+        if (response.status === 401) {
+            setError('Please login to check room availability');
+            setLoading(false);
+            return;
+        }
+
+        const data = await response.json();
+        console.log('Backend response:', data);
+
+        if (data.success) {
+            setAvailableRooms(data.data.available_rooms || []);
+            if (data.data.available_rooms.length === 0) {
+                setError('No rooms available for the selected time slot');
+            }
+        } else {
+            setError(data.message || 'Failed to check room availability');
+        }
+    } catch (error) {
+        console.error('API call failed:', error);
+        setError('Cannot connect to server. Make sure the backend is running on port 8000.');
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const clearResults = () => {
+    setAvailableRooms([]);
+    setError('');
+  };
+
+  const handleRoomSelect = (room) => {
+    navigate('/BookingPage', {
+      state: {
+        selectedRoom: room,
+        formData: {
+          date: date,
+          time: startTime,
+          duration: duration,
+          room: room.name
+        }
+      }
     });
-
-    setAvailableRooms(available);
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    checkAvailability();
-  };
-
-  const handleRoomSelect = (id) => {
-    setSelectedRoom(id);
-    alert(`Room ${rooms.find(r => r.id === id).name} selected!`);
   };
 
   return (
     <div style={styles.container}>
-      {/* Header */}
       <header style={styles.header}>
         <h1 style={styles.title}>Room Availability Checker</h1>
-        <p style={styles.description}>Find available rooms for your meeting or event</p>
+        <p style={styles.description}>Find available rooms for your meeting</p>
+        
+        <div style={styles.headerButtons}>
+          <button onClick={clearResults} style={styles.headerButton}>
+            Clear Results
+          </button>
+
+          {hasRole('admin') && (
+            <button 
+              onClick={handleManageRoom} 
+              style={styles.manageButton}
+              title="Manage rooms"
+            >
+              Manage Rooms
+            </button>
+          )}
+        </div>
       </header>
 
-      {/* Form Section */}
       <section style={styles.searchPanel}>
-        <form style={styles.searchForm} onSubmit={handleSubmit}>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Date</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={styles.input} required />
+        <form onSubmit={handleCheckAvailability} style={styles.searchForm}>
+          <div style={styles.formRow}>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Date</label>
+              <input 
+                type="date" 
+                value={date} 
+                onChange={(e) => setDate(e.target.value)} 
+                style={styles.input} 
+                required 
+              />
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Start Time</label>
+              <input 
+                type="time" 
+                value={startTime} 
+                onChange={(e) => setStartTime(e.target.value)} 
+                style={styles.input} 
+                required 
+              />
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Duration (minutes)</label>
+              <input 
+                type="number" 
+                value={duration} 
+                onChange={(e) => setDuration(e.target.value)} 
+                style={styles.input} 
+                min="1"
+                max="480"
+                required 
+              />
+            </div>
           </div>
 
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Start Time</label>
-            <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} style={styles.input} required />
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Duration</label>
-            <select value={duration} onChange={(e) => setDuration(e.target.value)} style={styles.input} required>
-              <option value="">Select duration</option>
-              <option value="30">30 minutes</option>
-              <option value="60">1 hour</option>
-              <option value="90">1.5 hours</option>
-              <option value="120">2 hours</option>
-              <option value="180">3 hours</option>
-            </select>
-          </div>
-
-          <button type="submit" style={styles.button}>Check Availability</button>
+          <button 
+            type="submit" 
+            style={styles.submitButton}
+            disabled={loading}
+          >
+            {loading ? 'Checking Availability...' : 'Check Availability'}
+          </button>
         </form>
+
+        {error && (
+          <div style={styles.error}>
+            ⚠️ {error}
+          </div>
+        )}
       </section>
 
-      {/* Results Section */}
       <section style={styles.resultsContainer}>
-        <h2 style={styles.resultsCount}>Available Rooms ({availableRooms.length})</h2>
-        {availableRooms.length > 0 && (
-          <p style={styles.resultsSummary}>
-            {new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} from {formatTime(startTime)} for {duration} minutes
-          </p>
+        {loading && (
+          <div style={styles.loading}>
+            <div style={styles.spinner}></div>
+            Checking room availability...
+          </div>
         )}
 
-        {availableRooms.length === 0 ? (
-          <div style={styles.noResults}>
-            <i className="fas fa-search" style={{ fontSize: '3rem', marginBottom: '15px', color: '#718096' }}></i>
-            <p>Enter your desired date and time to see available rooms</p>
-          </div>
-        ) : (
-          <div style={styles.roomsGrid}>
-            {availableRooms.map(room => (
-              <div key={room.id} style={styles.roomCard}>
-                <div style={{ ...styles.roomImage, background: `linear-gradient(45deg, ${room.imageColor}, #a4b9db)` }}>
-                  <i className="fas fa-door-open"></i>
-                </div>
-                <div style={styles.roomDetails}>
-                  <h3 style={styles.roomName}>{room.name}</h3>
-                  <p><strong>Capacity:</strong> {room.capacity} people</p>
-                  <ul style={styles.roomFeatures}>
-                    {room.features.map((f, idx) => (
-                      <li key={idx}><i className="fas fa-check" style={styles.featureIcon}></i> {f}</li>
-                    ))}
-                  </ul>
-                  <div style={styles.roomAvailability}>
-                    <span style={styles.availabilityStatus}>Available</span>
-                    <button
-                      style={{ ...styles.bookBtn, backgroundColor: selectedRoom === room.id ? '#2f855a' : '#38a169' }}
-                      onClick={() => handleRoomSelect(room.id)}
-                    >
-                      {selectedRoom === room.id ? 'Selected' : 'Select Room'}
-                    </button>
+        {!loading && availableRooms.length > 0 && (
+          <>
+            <h2 style={styles.resultsTitle}>
+              Available Rooms ({availableRooms.length})
+            </h2>
+            <div style={styles.roomsGrid}>
+              {availableRooms.map(room => (
+                <div key={room.id} style={styles.roomCard}>
+                  <div style={styles.roomHeader}>
+                    <h3 style={styles.roomName}>{room.name}</h3>
+                    <span style={styles.roomCapacity}>{room.capacity} people</span>
                   </div>
+                  
+                  <div style={styles.roomDetails}>
+                    <div style={styles.detailItem}>
+                      <span style={styles.detailLabel}>Location:</span>
+                      <span>{room.location}</span>
+                    </div>
+                    <div style={styles.detailItem}>
+                      <span style={styles.detailLabel}>Status:</span>
+                      <span style={styles.statusAvailable}>Available</span>
+                    </div>
+                  </div>
+
+                  {room.features && room.features.length > 0 && (
+                    <div style={styles.featuresSection}>
+                      <h4 style={styles.featuresTitle}>Features:</h4>
+                      <div style={styles.featuresList}>
+                        {room.features.map((feature, index) => (
+                          <span key={index} style={styles.featureTag}>
+                            {feature}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    style={styles.selectButton}
+                    onClick={() => handleRoomSelect(room)}
+                  >
+                    Select Room
+                  </button>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          </>
+        )}
+
+        {!loading && availableRooms.length === 0 && !error && (
+          <div style={styles.placeholder}>
+            <div style={styles.placeholderIcon}>🏢</div>
+            <p>Enter meeting details to check room availability</p>
+            <p style={styles.placeholderSub}>Select date, time, and duration above</p>
           </div>
         )}
       </section>
@@ -166,32 +244,284 @@ const RoomAvailabilityChecker = () => {
   );
 };
 
-// Styles
 const styles = {
-  container: { width: '100%', maxWidth: 800, margin: '20px auto', borderRadius: 15, boxShadow: '0 10px 30px rgba(0,0,0,0.1)', overflow: 'hidden' },
-  header: { background: '#4a6fa5', color: 'white', padding: '20px', textAlign: 'center' },
-  title: { fontSize: '2rem', marginBottom: 10 },
-  description: { opacity: 0.9 },
-  searchPanel: { padding: 20, background: '#f8f9fa', borderBottom: '1px solid #eaeaea' },
-  searchForm: { display: 'flex', flexDirection: 'column', gap: 15 },
-  formGroup: { display: 'flex', flexDirection: 'column' },
-  label: { fontWeight: 600, marginBottom: 5 },
-  input: { padding: '10px 12px', borderRadius: 8, border: '2px solid #e2e8f0', fontSize: '1rem' },
-  button: { marginTop: 10, padding: '10px 20px', background: '#4a6fa5', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 },
-  resultsContainer: { padding: 20 },
-  resultsCount: { fontSize: '1.3rem', fontWeight: 600, marginBottom: 10 },
-  resultsSummary: { color: '#4a5568', marginBottom: 15 },
-  noResults: { textAlign: 'center', padding: 40, color: '#718096' },
-  roomsGrid: { display: 'grid', gridTemplateColumns: '1fr', gap: 20 }, // force single column
-  roomCard: { background: 'white', borderRadius: 10, overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.08)' },
-  roomImage: { height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.5rem' },
-  roomDetails: { padding: 20 },
-  roomName: { fontSize: '1.3rem', marginBottom: 10 },
-  roomFeatures: { listStyleType: 'none', margin: '10px 0' },
-  featureIcon: { color: '#4a6fa5', marginRight: 8 },
-  roomAvailability: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, borderTop: '1px solid #eaeaea', paddingTop: 10 },
-  availabilityStatus: { fontWeight: 600, color: '#38a169' },
-  bookBtn: { border: 'none', color: 'white', padding: '8px 15px', borderRadius: 8, cursor: 'pointer' }
+  container: { 
+    maxWidth: 1200,
+    margin: '20px auto', 
+    backgroundColor: 'white',
+    borderRadius: 12,
+    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+    overflow: 'hidden'
+  },
+  header: { 
+    background: 'linear-gradient(135deg, #4a6fa5, #2c5282)',
+    color: 'white', 
+    padding: '30px',
+    textAlign: 'center'
+  },
+  title: { 
+    fontSize: '2.2rem', 
+    marginBottom: 10,
+    fontWeight: 'bold'
+  },
+  description: { 
+    fontSize: '1.1rem',
+    opacity: 0.9,
+    marginBottom: 20
+  },
+  headerButtons: {
+    display: 'flex',
+    gap: 10,
+    justifyContent: 'center',
+    flexWrap: 'wrap'
+  },
+  headerButton: {
+    background: 'rgba(255,255,255,0.15)',
+    color: 'white',
+    border: '1px solid rgba(255,255,255,0.3)',
+    padding: '8px 16px',
+    borderRadius: 6,
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    transition: 'background 0.2s',
+    '&:hover': {
+      background: 'rgba(255,255,255,0.25)'
+    }
+  },
+  manageButton: {
+    background: 'rgba(255,255,255,0.15)',
+    color: 'white',
+    border: '1px solid rgba(255,255,255,0.3)',
+    padding: '8px 16px',
+    borderRadius: 6,
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    transition: 'all 0.2s',
+    fontWeight: '500',
+    '&:hover': {
+      background: 'rgba(255,255,255,0.25)'
+    }
+  },
+  searchPanel: { 
+    padding: 30,
+    backgroundColor: '#f8fafc',
+    borderBottom: '1px solid #e2e8f0'
+  },
+  searchForm: {
+    maxWidth: 600,
+    margin: '0 auto'
+  },
+  formRow: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: 20,
+    marginBottom: 25
+  },
+  formGroup: {
+    display: 'flex',
+    flexDirection: 'column'
+  },
+  label: { 
+    fontWeight: 600, 
+    marginBottom: 8,
+    color: '#374151',
+    fontSize: '0.9rem'
+  },
+  input: { 
+    padding: '12px 16px',
+    borderRadius: 8,
+    border: '2px solid #e5e7eb',
+    fontSize: '1rem',
+    backgroundColor: 'white',
+    transition: 'border-color 0.2s',
+    '&:focus': {
+      outline: 'none',
+      borderColor: '#4a6fa5'
+    }
+  },
+  submitButton: {
+    width: '100%',
+    padding: '15px',
+    background: 'linear-gradient(135deg, #4a6fa5, #2c5282)',
+    color: 'white',
+    border: 'none',
+    borderRadius: 8,
+    fontSize: '1.1rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'transform 0.1s',
+    '&:hover': {
+      transform: 'translateY(-1px)'
+    },
+    '&:disabled': {
+      opacity: 0.7,
+      cursor: 'not-allowed',
+      transform: 'none'
+    }
+  },
+  error: {
+    marginTop: 20,
+    padding: '15px',
+    backgroundColor: '#fef2f2',
+    color: '#dc2626',
+    borderRadius: 8,
+    border: '1px solid #fecaca',
+    textAlign: 'center'
+  },
+  resultsContainer: {
+    padding: 30,
+    minHeight: 300
+  },
+  loading: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+    color: '#64748b'
+  },
+  spinner: {
+    width: 40,
+    height: 40,
+    border: '4px solid #e2e8f0',
+    borderTop: '4px solid #4a6fa5',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+    marginBottom: 15
+  },
+  resultsTitle: {
+    fontSize: '1.5rem',
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 25,
+    textAlign: 'center'
+  },
+  roomsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+    gap: 20
+  },
+  roomCard: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 12,
+    boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+    border: '1px solid #e5e7eb',
+    display: 'flex',
+    flexDirection: 'column',
+    height: 'fit-content',
+    transition: 'transform 0.2s, box-shadow 0.2s',
+    '&:hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 4px 15px rgba(0,0,0,0.12)'
+    }
+  },
+  roomHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'start',
+    marginBottom: 15
+  },
+  roomName: {
+    fontSize: '1.2rem',
+    fontWeight: '600',
+    color: '#1f2937',
+    margin: 0,
+    flex: 1
+  },
+  roomCapacity: {
+    backgroundColor: '#eff6ff',
+    color: '#1d4ed8',
+    padding: '4px 8px',
+    borderRadius: 12,
+    fontSize: '0.8rem',
+    fontWeight: '500',
+    marginLeft: 10
+  },
+  roomDetails: {
+    marginBottom: 15
+  },
+  detailItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    padding: '8px 0',
+    borderBottom: '1px solid #f3f4f6'
+  },
+  detailLabel: {
+    fontWeight: '500',
+    color: '#6b7280',
+    fontSize: '0.9rem'
+  },
+  statusAvailable: {
+    color: '#059669',
+    fontWeight: '600',
+    fontSize: '0.9rem'
+  },
+  featuresSection: {
+    marginBottom: 20,
+    padding: '12px 0',
+    borderTop: '1px solid #f3f4f6',
+    borderBottom: '1px solid #f3f4f6'
+  },
+  featuresTitle: {
+    fontSize: '0.9rem',
+    fontWeight: '600',
+    color: '#374151',
+    margin: '0 0 10px 0'
+  },
+  featuresList: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '6px'
+  },
+  featureTag: {
+    backgroundColor: '#f0f9ff',
+    color: '#0369a1',
+    padding: '4px 8px',
+    borderRadius: 12,
+    fontSize: '0.75rem',
+    fontWeight: '500',
+    border: '1px solid #bae6fd'
+  },
+  selectButton: {
+    width: '100%',
+    padding: '12px',
+    backgroundColor: '#059669',
+    color: 'white',
+    border: 'none',
+    borderRadius: 8,
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+    marginTop: 'auto',
+    '&:hover': {
+      backgroundColor: '#047857'
+    }
+  },
+  placeholder: {
+    textAlign: 'center',
+    padding: 60,
+    color: '#6b7280'
+  },
+  placeholderIcon: {
+    fontSize: '3rem',
+    marginBottom: 15,
+    opacity: 0.5
+  },
+  placeholderSub: {
+    fontSize: '0.9rem',
+    marginTop: 5,
+    color: '#9ca3af'
+  }
 };
+
+// Add CSS animation for the spinner
+const styleSheet = document.styleSheets[0];
+styleSheet.insertRule(`
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`, styleSheet.cssRules.length);
 
 export default RoomAvailabilityChecker;
