@@ -124,7 +124,7 @@ const BookingForm = ({ formData, setFormData, onSubmit }) => {
         
         // Navigate to the meeting page after a short delay
         setTimeout(() => {
-          navigate(`/meeting/${response.data.id}`);
+          navigate(`/meetings/${response.data.id}`);
         }, 1500);
         
       } else {
@@ -571,14 +571,7 @@ const BookingForm = ({ formData, setFormData, onSubmit }) => {
             })}>
               Clear Form
             </Button>
-            <Button 
-              variant="outline-info" 
-              type="button" 
-              className="ms-2"
-              onClick={() => setDebugMode(!debugMode)}
-            >
-              {debugMode ? 'Hide Debug' : 'Show Debug'}
-            </Button>
+           
           </Col>
         </Form.Group>
       </Form>

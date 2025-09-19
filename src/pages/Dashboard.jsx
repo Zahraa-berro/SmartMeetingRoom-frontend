@@ -115,7 +115,7 @@ const Dashboard = () => {
         </Col>
       </Row>
 
-      {/* Debug Information */}
+      {/* role Information */}
       {showDebug && (
         <Row className="mb-3">
           <Col>
@@ -146,31 +146,14 @@ const Dashboard = () => {
       <Row className="mb-4">
         <Col>
           <div className="quick-actions">
+            {(hasRole('employee') || hasRole('admin')) && (
             <Button variant="primary" className="action-btn" onClick={bookingNavigate}>
               <FaCalendarAlt className="me-2" />
               Book Meeting
             </Button>
+            )}
+          
             
-            <Button variant="info" className="action-btn" onClick={minutesNavigate}>
-              <FaFileAlt className="me-2" />
-              View Minutes
-            </Button>
-
-            {/* Admin Only Actions */}
-            {hasRole('admin') && (
-              <Button variant="warning" className="action-btn">
-                <FaUsers className="me-2" />
-                Manage Users
-              </Button>
-            )}
-
-            {/* Manager and Admin Actions */}
-            {(hasRole('employee') || hasRole('admin')) && (
-              <Button variant="success" className="action-btn">
-                <FaChartLine className="me-2" />
-                Analytics
-              </Button>
-            )}
           </div>
         </Col>
       </Row>
