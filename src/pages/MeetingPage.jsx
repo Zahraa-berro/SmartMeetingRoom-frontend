@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContexts';
+import axios from 'axios';
 
 const MeetingPage = () => {
   const { id } = useParams();
@@ -18,19 +19,21 @@ const MeetingPage = () => {
       setError('No meeting ID provided in the URL');
       setLoading(false);
     }
-  }, [id, token]);
+  }, [id]);
 
   const fetchMeeting = async () => {
     try {
       setLoading(true);
       setError('');
       
+      const authToken = localStorage.getItem('auth_token');
+      
       const response = await fetch(`http://localhost:8000/api/getmeetings/${id}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+          'Authorization': authToken ? `Bearer ${authToken}` : '',
+        }
       });
 
       if (response.status === 401) {
@@ -66,13 +69,19 @@ const MeetingPage = () => {
 
     try {
       setDeleting(true);
+      
+      // Get CSRF cookie first (same pattern as RoomAvailabilityChecker)
+      await axios.get('http://localhost:8000/sanctum/csrf-cookie');
+      
+      const authToken = localStorage.getItem('auth_token');
+      
       const response = await fetch(`http://localhost:8000/api/deletemeeting/${id}`, {
         method: 'DELETE',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': authToken ? `Bearer ${authToken}` : '',
           'Content-Type': 'application/json',
-        },
+        }
       });
 
       if (response.status === 401) {
@@ -85,7 +94,7 @@ const MeetingPage = () => {
 
       if (data.success) {
         alert('Meeting deleted successfully!');
-        navigate('/BookingPage'); // Changed to navigate to BookingPage
+        navigate('/BookingPage');
       } else {
         setError(data.message || 'Failed to delete meeting');
       }
@@ -97,7 +106,7 @@ const MeetingPage = () => {
   };
 
   const handleAddMoM = () => {
-    navigate(`/meetings/${id}/mom`);
+    navigate(`/mom/${id}`);
   };
 
   const handleRefresh = () => {
@@ -105,7 +114,7 @@ const MeetingPage = () => {
   };
 
   const handleBackToBooking = () => {
-    navigate('/BookingPage'); // Added function to navigate back to BookingPage
+    navigate('/BookingPage');
   };
 
   const formatTime = (timeString) => {
@@ -209,7 +218,7 @@ const MeetingPage = () => {
       borderLeft: '4px solid #667eea',
     },
     sectionTitle: {
-      color: '#2d3748',
+      color: '##2d3748',
       margin: '0 0 15px 0',
       fontSize: '1.3rem',
     },
@@ -281,7 +290,7 @@ const MeetingPage = () => {
     errorTitle: {
       color: '#e53e3e',
       marginBottom: '15px',
-    },
+    }
   };
 
   const getButtonStyle = (type, isDisabled) => {
@@ -346,7 +355,7 @@ const MeetingPage = () => {
               🔄 Try Again
             </button>
             <button 
-              onClick={handleBackToBooking} // Changed to navigate to BookingPage
+              onClick={handleBackToBooking}
               style={getButtonStyle('secondary', false)}
             >
               Back to Booking
@@ -364,7 +373,7 @@ const MeetingPage = () => {
           <h2 style={styles.errorTitle}>Meeting Not Found</h2>
           <p>The requested meeting could not be found.</p>
           <button 
-            onClick={handleBackToBooking} // Changed to navigate to BookingPage
+            onClick={handleBackToBooking}
             style={getButtonStyle('secondary', false)}
           >
             Back to Booking
@@ -460,7 +469,7 @@ const MeetingPage = () => {
 
         <div style={styles.footer}>
           <button 
-            onClick={handleBackToBooking} // Changed to navigate to BookingPage
+            onClick={handleBackToBooking}
             style={getButtonStyle('secondary', false)}
           >
             ← Back to Booking

@@ -10,6 +10,7 @@ import './App.css';
 import ForgotPassword from './components/Auth/ForgotPassword';
 import { AuthProvider } from '../src/contexts/AuthContexts';
 import Profile from './pages/Profile';
+import MomPage from './pages/momPage';
 function App() {
   return (
     <AuthProvider>
@@ -25,6 +26,7 @@ function App() {
         <Route path="/minutes" element={<MinutesPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/manageprofile" element={<Profile />} />
+        <Route path="/mom/:meetingId" element={<MomPage />} />
       </Routes>
         </div>
       </Router>
