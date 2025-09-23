@@ -308,16 +308,7 @@ const MomPage = () => {
           </div>
         </form>
 
-        {/* Help Section */}
-        <div style={styles.helpSection}>
-          <h3 style={styles.helpTitle}>Tips for Effective MOM Records:</h3>
-          <ul style={styles.helpList}>
-            <li>• Be specific and concise in your descriptions</li>
-            <li>• Include key decisions made during the meeting</li>
-            <li>• Clearly assign action items with responsible parties</li>
-            <li>• Note any important deadlines or follow-up dates</li>
-          </ul>
-        </div>
+      
       </div>
     </div>
   );
