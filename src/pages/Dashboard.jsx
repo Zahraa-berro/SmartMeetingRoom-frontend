@@ -6,19 +6,19 @@ import 'react-calendar/dist/Calendar.css';
 import RoomAvailabilityChart from '../components/Dashboard/RoomAvailabilityChart';
 import '../App.css';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContexts'; // Import AuthContext
+import { useAuth } from '../contexts/AuthContexts'; 
 
 const Dashboard = () => {
   const [date, setDate] = useState(new Date());
   const [activeView, setActiveView] = useState('day');
-  const [showDebug, setShowDebug] = useState(false); // For toggling debug info
+  const [showDebug, setShowDebug] = useState(false); 
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     day: 'numeric',
     month: 'long'
   });
 
-  const { user, hasRole, isAuthenticated } = useAuth(); // Get auth info
+  const { user, hasRole, isAuthenticated } = useAuth(); 
   const navigate = useNavigate();
 
   // Sample data
@@ -37,7 +37,6 @@ const Dashboard = () => {
     { name: 'Zoom Room', usage: 20, available: true }
   ];
 
-  // Debug function to check role access
   const checkRoleAccess = () => {
     console.log('=== ROLE DEBUG INFORMATION ===');
     console.log('User Object:', user);
@@ -49,7 +48,6 @@ const Dashboard = () => {
     console.log('==============================');
   };
 
-  // Call debug on component mount
   useEffect(() => {
     checkRoleAccess();
   }, []);
@@ -66,7 +64,6 @@ const Dashboard = () => {
     navigate('/manageprofile');
   }, [navigate]);
 
-  // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/');

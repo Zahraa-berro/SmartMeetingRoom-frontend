@@ -76,20 +76,17 @@ const MinutesPage = () => {
   };
 
   const handleShareMinute = (minute, email = '') => {
-    // In a real app, this would integrate with an email service
     console.log(`Sharing minute ${minute.id} with ${email}`);
     showAlert(`Minutes shared with ${email || 'team members'}`);
   };
 
   const handleExportMinute = (minute, format) => {
-    // In a real app, this would generate a file for download
     console.log(`Exporting minute ${minute.id} as ${format}`);
     showAlert(`Minutes exported as ${format.toUpperCase()}`);
   };
 
   const handleSaveMinutes = (minuteData, isDraft = false) => {
     if (minuteData.id) {
-      // Update existing minute
       setMinutes(minutes.map(m => m.id === minuteData.id ? minuteData : m));
       showAlert(`Minutes ${isDraft ? 'saved as draft' : 'finalized'} successfully`);
     } else {

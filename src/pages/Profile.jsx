@@ -88,12 +88,11 @@ const Profile = () => {
   try {
     await getCsrfToken();
     
-    // Prepare data for submission
     const submitData = {
       firstName: editForm.firstName,
       lastName: editForm.lastName,
       email: editForm.email,
-      password: editForm.password || 'placeholder' // Always send password, even if empty
+      password: editForm.password || 'placeholder' 
     };
     
     const response = await axios.put(`/api/update/${authUser?.id}`, submitData);
@@ -111,7 +110,6 @@ const Profile = () => {
     console.error('Error updating user:', err);
     
     if (err.response?.data?.errors) {
-      // Handle specific validation errors
       const errors = err.response.data.errors;
       
       if (errors.password && errors.password.includes('required')) {

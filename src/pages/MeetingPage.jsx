@@ -70,7 +70,6 @@ const MeetingPage = () => {
     try {
       setDeleting(true);
       
-      // Get CSRF cookie first (same pattern as RoomAvailabilityChecker)
       await axios.get('http://localhost:8000/sanctum/csrf-cookie');
       
       const authToken = localStorage.getItem('auth_token');

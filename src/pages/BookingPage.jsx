@@ -14,12 +14,12 @@ const BookingPage = () => {
     time: '',
     duration: '1 hour',
     attendees: [],
-    room_name: '', // Changed from 'room' to match backend expectation
+    room_name: '', 
     recurring: false,
     videoConference: false
   });
 
-  // Get data passed from RoomAvailabilityChecker
+  
   useEffect(() => {
     if (location.state) {
       const { selectedRoom, formData: passedFormData } = location.state;
@@ -29,12 +29,12 @@ const BookingPage = () => {
         date: passedFormData.date || '',
         time: passedFormData.time || '',
         duration: passedFormData.duration || '1 hour',
-        room_name: selectedRoom?.name || passedFormData.room_name || '' // Updated to room_name
+        room_name: selectedRoom?.name || passedFormData.room_name || '' 
       }));
     }
   }, [location.state]);
 
-  // Sample room data (you might want to fetch this from your API)
+  
   const rooms = [
     { id: 'room1', name: 'Conference Room A' },
     { id: 'room2', name: 'Conference Room B' },
@@ -43,7 +43,6 @@ const BookingPage = () => {
 
   const handleSubmit = (responseData) => {
     console.log('Booking submitted successfully:', responseData);
-    // You might want to redirect to a success page or show a confirmation message
   };
 
   return (
@@ -79,7 +78,7 @@ const BookingPage = () => {
                 rooms={rooms}
                 selectedDate={formData.date ? `${formData.date}T${formData.time}` : ''}
                 selectedDuration={formData.duration}
-                bookings={[]} // You might want to fetch actual bookings
+                bookings={[]} 
                 selectedRoom={formData.room_name}
                 onRoomSelect={(roomId) => {
                   const selected = rooms.find(r => r.id === roomId);

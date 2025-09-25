@@ -69,12 +69,10 @@ const Home = () => {
     console.log('Response.data.token exists:', !!response.data.token);
     console.log('Response.data.data exists:', !!response.data.data);
     console.log('==========================');
-      console.log('Login response:', response.data); // Debug log
+      console.log('Login response:', response.data); 
       
-      // Use AuthContext login function - this stores user data with role
       login(response.data);
       
-      // Redirect to dashboard
       navigate('/dashboard');
       
     } catch (error) {

@@ -17,7 +17,6 @@ const MomPage = () => {
   const [meetingDetails, setMeetingDetails] = useState(null);
   const [error, setError] = useState('');
 
-  // Fetch meeting details to verify the meeting exists
   useEffect(() => {
     if (meetingId) {
       fetchMeetingDetails();

@@ -10,7 +10,6 @@ import {
   Legend
 } from 'chart.js';
 
-// Register ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -23,7 +22,6 @@ ChartJS.register(
 const RoomAvailabilityChart = ({ data }) => {
   const chartRef = useRef(null);
 
-  // Destroy chart on unmount
   useEffect(() => {
     return () => {
       if (chartRef.current) {
@@ -32,7 +30,6 @@ const RoomAvailabilityChart = ({ data }) => {
     };
   }, []);
 
-  // Sort rooms by usage (descending)
   const sortedData = [...data].sort((a, b) => b.usage - a.usage);
 
   const chartData = {

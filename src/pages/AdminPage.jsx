@@ -21,7 +21,6 @@ const AdminPage = () => {
   
   const { hasRole } = useAuth();
 
-  // Form state for adding/editing rooms
   const [formData, setFormData] = useState({
     name: '',
     capacity: '',
@@ -30,7 +29,6 @@ const AdminPage = () => {
     features: []
   });
 
-  // Fetch all rooms on component mount
   useEffect(() => {
     fetchAllRooms();
   }, []);
@@ -129,7 +127,6 @@ const AdminPage = () => {
       
       const token = localStorage.getItem('auth_token');
       
-      // Prepare data for API - convert features to array of IDs and capacity to integer
       const apiData = {
         ...formData,
         capacity: parseInt(formData.capacity),
@@ -151,7 +148,7 @@ const AdminPage = () => {
       if (data.success) {
         setShowAddForm(false);
         setEditingRoom(null);
-        fetchAllRooms(); // Refresh the room list
+        fetchAllRooms(); 
       } else {
         setError(data.message || 'Failed to add room');
       }
@@ -169,7 +166,6 @@ const AdminPage = () => {
       
       const token = localStorage.getItem('auth_token');
       
-      // Prepare data for API - convert features to array of IDs and capacity to integer
       const apiData = {
         ...formData,
         capacity: parseInt(formData.capacity),
@@ -191,7 +187,7 @@ const AdminPage = () => {
       if (data.success) {
         setShowAddForm(false);
         setEditingRoom(null);
-        fetchAllRooms(); // Refresh the room list
+        fetchAllRooms(); 
       } else {
         setError(data.message || 'Failed to update room');
       }
@@ -223,7 +219,7 @@ const AdminPage = () => {
       const data = await response.json();
 
       if (data.success) {
-        fetchAllRooms(); // Refresh the room list
+        fetchAllRooms(); 
       } else {
         setError(data.message || 'Failed to delete room');
       }
